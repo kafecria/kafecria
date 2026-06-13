@@ -15,8 +15,12 @@ function toggleLerMais(e) {
     // iOS Safari não atualiza scroll height durante transições CSS max-height.
     // transitionend garante timing exato; toggle overflow força recálculo de layout
     // sem salto visual (offsetHeight lê o layout, forçando reflow).
-    function onBioExpanded(evt) {
-      if (evt.propertyName !== 'max-height') return;
+    // Fallback por timeout: se transitionend não disparar (comum no iOS quando
+    // max-height:3000px nunca é "atingido"), o scroll ficaria travado em hidden.
+    var bioReflowDone = false;
+    function doBioReflow() {
+      if (bioReflowDone) return;
+      bioReflowDone = true;
       expanded.removeEventListener('transitionend', onBioExpanded);
       if (window.innerWidth > 768) return;
       var bio = document.getElementById('panel-bio');
@@ -27,7 +31,12 @@ function toggleLerMais(e) {
       bio.style.setProperty('overflow-y', 'scroll', 'important');
       bio.scrollTop = saved;
     }
+    function onBioExpanded(evt) {
+      if (evt.propertyName !== 'max-height') return;
+      doBioReflow();
+    }
     expanded.addEventListener('transitionend', onBioExpanded);
+    setTimeout(doBioReflow, 800); // garante restauração mesmo sem transitionend
   } else {
     expanded.style.maxHeight = '0';
     expanded.style.opacity = '0';
@@ -319,10 +328,15 @@ const coverArts = [];
   });
 })();
 
-// Smooth hover — only one card active at a time
+// Smooth hover — only one card active at a time (desktop pointer only)
 (function() {
   const grid = document.getElementById('fl-srv');
   if (!grid) return;
+  // On touch devices mouseover fires on tap and stays latched, trapping the
+  // panel's vertical scroll. Bind hover behaviour only where a fine pointer
+  // (mouse) is the primary input.
+  const hasFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (!hasFinePointer) return;
   let hoverTimer = null;
   let currentActive = null;
 
@@ -480,15 +494,11 @@ buildDirectList('ml-srv', srvMusicData);
     const shield = document.createElement('div');
     shield.className = 'iframe-shield';
     shield.style.cssText = 'position:absolute;inset:0;z-index:4;background:transparent;';
-    // Always intercept wheel → consistent scroll regardless of cursor position
-    shield.addEventListener('wheel', function(e) {
-      let delta = e.deltaY;
-      if (e.deltaMode === 1) delta *= 40;
-      if (e.deltaMode === 2) delta *= view.clientHeight;
-      view.scrollTop += delta;
-      e.preventDefault();
-      e.stopPropagation();
-    }, { passive: false });
+    // The shield blocks the cross-origin iframe from swallowing the wheel event,
+    // but does NOT hijack scroll. With pointer-events on the shield, the wheel
+    // event bubbles to #ms-music-view and the browser scrolls it natively — no
+    // JS in the hot path, so no stutter. preventDefault/scrollTop manipulation
+    // removed: that was forcing a non-passive reflow on every wheel tick.
     // On mousedown: briefly go transparent so the iframe receives the click
     shield.addEventListener('mousedown', function() {
       shield.style.pointerEvents = 'none';
