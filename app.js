@@ -23,7 +23,9 @@ function toggleLerMais(e) {
       bioReflowDone = true;
       expanded.removeEventListener('transitionend', onBioExpanded);
       if (window.innerWidth > 768) return;
-      var bio = document.getElementById('panel-bio');
+      // O scroller no mobile é o .panel-inner (arquitetura iOS-safe);
+      // fallback para o próprio painel por segurança.
+      var bio = document.querySelector('#panel-bio .panel-inner') || document.getElementById('panel-bio');
       if (!bio) return;
       var saved = bio.scrollTop;
       bio.style.setProperty('overflow-y', 'hidden', 'important');
@@ -109,6 +111,11 @@ function showPanel(id) {
   if (id === 'hero') bg.classList.remove('dimmed');
   else bg.classList.add('dimmed');
   current = id;
+  // Reentrada em MÚSICA>TERCEIROS no desktop: re-afirma o estado da subview
+  // (música/covers). Idempotente; elimina meio-estados deixados por navegação.
+  if (id === 'musica-terceiros' && window.innerWidth > 768 && typeof showMusicView === 'function') {
+    showMusicView(currentMusicSubview);
+  }
 }
 
 function toggleSub(id) {
@@ -403,7 +410,12 @@ function buildDirectList(listId, data) {
   });
 }
 
+// Estado da subview de MÚSICA>TERCEIROS (música | covers) — usado para
+// re-afirmar o estado ao reentrar no painel e para o controlador de wheel.
+var currentMusicSubview = 'music';
+
 function showMusicView(view) {
+  currentMusicSubview = view === 'covers' ? 'covers' : 'music';
   const musicView = document.getElementById('ms-music-view');
   const coversView = document.getElementById('ms-covers-view');
   const musicTab = document.getElementById('ms-music-tab');
@@ -435,15 +447,20 @@ function showMusicView(view) {
     return;
   }
 
-  // Desktop: opacity/transform transitions
+  // Desktop: opacity/transform transitions.
+  // visibility is toggled alongside opacity because the global rule
+  // `.panel.active * { pointer-events:auto }` re-enables pointer-events on the
+  // hidden view's children (e.g. #ms-cover-list), so opacity:0 alone leaves an
+  // invisible layer stacked over #ms-music-view that swallows the wheel on
+  // return. visibility:hidden removes it from hit-testing entirely.
   if (view === 'covers') {
-    musicView.style.opacity='0'; musicView.style.transform='translateX(-60px)'; musicView.style.pointerEvents='none';
-    coversView.style.opacity='1'; coversView.style.transform='translateX(0)'; coversView.style.pointerEvents='auto';
+    musicView.style.opacity='0'; musicView.style.transform='translateX(-60px)'; musicView.style.pointerEvents='none'; musicView.style.visibility='hidden';
+    coversView.style.opacity='1'; coversView.style.transform='translateX(0)'; coversView.style.pointerEvents='auto'; coversView.style.visibility='visible';
     if (musicTab) { musicTab.classList.remove('active'); musicTab.classList.add('inactive'); }
     if (coversTab) coversTab.style.color='rgba(237,230,219,.75)';
   } else {
-    coversView.style.opacity='0'; coversView.style.transform='translateX(60px)'; coversView.style.pointerEvents='none';
-    musicView.style.opacity='1'; musicView.style.transform='translateX(0)'; musicView.style.pointerEvents='auto';
+    coversView.style.opacity='0'; coversView.style.transform='translateX(60px)'; coversView.style.pointerEvents='none'; coversView.style.visibility='hidden';
+    musicView.style.opacity='1'; musicView.style.transform='translateX(0)'; musicView.style.pointerEvents='auto'; musicView.style.visibility='visible';
     if (musicTab) { musicTab.classList.remove('inactive'); musicTab.classList.add('active'); }
     if (coversTab) coversTab.style.color='';
   }
@@ -467,9 +484,12 @@ function showMusicView(view) {
   musicCoverArts.forEach(item => {
     const wrap = document.createElement('div');
     wrap.className = 'cover-list-item';
-    // loading="lazy" removido: data URIs base64 não têm benefício de lazy-load
-    // e em iOS Safari causam blank quando o container era display:none na inserção
-    wrap.innerHTML = '<img src="' + item.src + '" alt="' + item.name + '"><div class="cover-list-item-name">' + item.name + '</div>';
+    // item.srcs (array) permite capa + contracapa no mesmo item,
+    // com a legenda uma única vez, depois da última imagem.
+    const srcs = item.srcs || [item.src];
+    wrap.innerHTML = srcs.map(function(s){
+      return '<img src="' + s + '" alt="' + item.name + '">';
+    }).join('') + '<div class="cover-list-item-name">' + item.name + '</div>';
     wrap.addEventListener('click', e => e.stopPropagation());
     list.appendChild(wrap);
   });
@@ -506,6 +526,37 @@ buildDirectList('ml-srv', srvMusicData);
     });
     parent.appendChild(shield);
   });
+})();
+
+// ── CONTROLADOR DE WHEEL (desktop) ──
+// Garante scroll em MÚSICA>TERCEIROS independentemente de qual camada o
+// navegador acerta no hit-test (iframes cross-origin, shields, views ocultas,
+// estado pós-[cover art]). Listener único em fase de CAPTURA no painel:
+// intercepta o wheel antes de qualquer filho e rola a subview ativa.
+// Deltas acumulados e aplicados 1x por frame (rAF) — sem o jank do modelo
+// antigo de escrever scrollTop a cada tick.
+(function musicWheelController() {
+  const panel = document.getElementById('panel-musica-terceiros');
+  const musicView = document.getElementById('ms-music-view');
+  const coversView = document.getElementById('ms-covers-view');
+  if (!panel || !musicView) return;
+  let acc = 0, raf = 0;
+  function flush() {
+    raf = 0;
+    const target = (currentMusicSubview === 'covers' && coversView) ? coversView : musicView;
+    target.scrollTop += acc;
+    acc = 0;
+  }
+  panel.addEventListener('wheel', function(e) {
+    if (window.innerWidth <= 768) return; // mobile usa o scroller do panel-inner
+    let d = e.deltaY;
+    if (e.deltaMode === 1) d *= 40;
+    else if (e.deltaMode === 2) d *= musicView.clientHeight;
+    acc += d;
+    if (!raf) raf = requestAnimationFrame(flush);
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive: false, capture: true });
 })();
 
 // Mobile: mede o header e seta top exato em todos os panels para que

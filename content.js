@@ -69,6 +69,9 @@ const autMusicData = [
 ];
 
 const srvMusicData = [
+  {role:'mixagem', src:'https://open.spotify.com/embed/track/2xup1frEhNaxTEiH9JX2m9?utm_source=generator&theme=0'},
+  {role:'mixagem', src:'https://open.spotify.com/embed/track/2QnIXNhjJCwbE8jP3QgK3H?utm_source=generator&theme=0'},
+  {role:'co-produção · mixagem · masterização', src:'https://open.spotify.com/embed/track/5yfkS5GXG6JmPeSMElT7gN?utm_source=generator&theme=0'},
   {role:'co-composição · produção musical · mixagem · masterização', src:'https://open.spotify.com/embed/track/2UQI7CWzx2eINYwVGXJ0fY?utm_source=generator&theme=0'},
   {role:'', src:'https://open.spotify.com/embed/album/5Tq8rOwuysoJCvuAgTHLmg?utm_source=generator'},
   {role:'co-composição · co-produção musical · mixagem · masterização', src:'https://open.spotify.com/embed/track/7z9WyytxQY7nRLuQNeFeE8?utm_source=generator&theme=0'},
@@ -124,6 +127,8 @@ const srvMusicData = [
 ];
 
 const musicCoverArts = [
+  {name:'Larissa Luz — DESMONTE', srcs:['assets/music/larissa-luz-desmonte-capa.jpg','assets/music/larissa-luz-desmonte-contracapa.jpg']},
+  {name:'Yan Cloud, Fawaz, Avicena — ZAZA', src:'assets/music/yan-cloud-fawaz-avicena-zaza.jpg'},
   {name:'ÀTTØØXXÁ — Tá Pra Onda', src:'assets/music/attooxxa-ta-pra-onda.jpg'},
   {name:'Cinara — Mexe Mexe Mainha', src:'assets/music/cinara-mexe-mexe-mainha.jpg'},
   {name:'Cinara — Paquerei', src:'assets/music/cinara-paquerei.jpg'},

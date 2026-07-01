@@ -469,18 +469,23 @@ footer{
   body{cursor:auto}
   *,*::before,*::after{cursor:auto!important}
 
-  /* 2. PANEL é o scroll container principal no mobile.
-     top:6.5rem é fallback seguro — JS ajusta dinamicamente baseado no header real */
+  /* 2. ARQUITETURA DE SCROLL MOBILE (iOS-safe):
+     o .panel é animado (opacity/transform na transição de entrada) e um
+     elemento animado/composto NUNCA deve ser o scroller — é a causa clássica
+     de touch-scroll congelado no iOS Safari. O .panel vira casca estática
+     (overflow:hidden) e o .panel-inner, que não tem transform nem transition,
+     passa a ser o único scroller. padding:0!important também neutraliza o
+     padding-top inline de centralização do #panel-bio (calc(50vh - 200px)),
+     que empurrava a caixa da TRAJETÓRIA para baixo no mobile. */
   .panel{
     top:6.5rem!important;
     align-items:flex-start;
     justify-content:flex-start;
-    padding-top:1rem;
-    overflow-y:scroll;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior-y:contain;
+    padding:0!important;
+    overflow:hidden!important;
     touch-action:pan-y;
   }
+  .panel.active{transform:none!important}
 
   /* 2b. Todos os iframes dentro do painel de música (Spotify + YouTube Sonho de Arrocha):
      pointer-events:none impede que capturem toque, permitindo scroll do panel.
@@ -490,11 +495,14 @@ footer{
   /* 2c. Iframes no painel AUTORAL (Spotify em #ml-aut — fora de #ms-music-view) */
   #panel-musica-autoral iframe{pointer-events:none!important}
 
-  /* 3. Panel-inner: caixa de conteúdo sem restrição de altura */
+  /* 3. Panel-inner é o scroller único do mobile */
   .panel-inner{
-    max-height:none;
-    overflow-y:visible;
-    height:auto;
+    height:100%!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+    touch-action:pan-y;
     width:100%;
     max-width:100%;
     padding:1.5rem 1.2rem;
@@ -502,16 +510,13 @@ footer{
     box-sizing:border-box;
   }
 
-  /* 4. Bio panel: sobrescreve inline overflow-y:auto */
+  /* 4. Bio panel: casca estática como os demais; quem rola é o inner.
+     overflow:hidden vence o inline overflow-y:auto do HTML. */
   #panel-bio{
-    overflow-y:scroll!important;
-    -webkit-overflow-scrolling:touch!important;
-    overscroll-behavior-y:contain;
-    touch-action:pan-y;
+    overflow:hidden!important;
   }
 
   /* 5. FILMES > TERCEIROS: quebra cadeia position:absolute */
-  #panel-filme-terceiros .panel-inner{height:auto!important}
   #panel-filme-terceiros .panel-inner > div:last-child{
     position:static!important;
     flex:none!important;
@@ -528,7 +533,6 @@ footer{
   }
 
   /* 7. MÚSICA > TERCEIROS: quebra cadeia position:absolute */
-  #panel-musica-terceiros .panel-inner{height:auto!important}
   #panel-musica-terceiros .panel-inner > div:last-child{
     position:relative!important;
     flex:none!important;
