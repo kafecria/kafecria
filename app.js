@@ -10,7 +10,9 @@ function toggleLerMais(e) {
   if (!expanded || !label) return;
   lerMaisOpen = !lerMaisOpen;
   if (lerMaisOpen) {
-    expanded.style.maxHeight = '3000px';
+    // 'none' em vez de valor fixo: o elemento não tem transition de max-height
+    // no CSS, então nada é perdido — e elimina qualquer risco de recorte.
+    expanded.style.maxHeight = 'none';
     expanded.style.opacity = '1';
     // iOS Safari não atualiza scroll height durante transições CSS max-height.
     // transitionend garante timing exato; toggle overflow força recálculo de layout

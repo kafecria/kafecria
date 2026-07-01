@@ -486,6 +486,14 @@ footer{
     touch-action:pan-y;
   }
   .panel.active{transform:none!important}
+  /* Troca de painéis instantânea no mobile: o scroller (.panel-inner) não pode
+     viver dentro de um elemento em animação de opacidade — no iOS isso congela
+     o touch-scroll de forma intermitente. No desktop a transição permanece. */
+  .panel{transition:none!important}
+  .panel.exit{transition:none!important}
+
+  /* Player fullscreen: alvo de toque maior para o [ voltar ] */
+  .fs-back{font-size:.78rem;padding:.55rem .8rem;margin:-.55rem -.8rem}
 
   /* 2b. Todos os iframes dentro do painel de música (Spotify + YouTube Sonho de Arrocha):
      pointer-events:none impede que capturem toque, permitindo scroll do panel.
@@ -495,12 +503,14 @@ footer{
   /* 2c. Iframes no painel AUTORAL (Spotify em #ml-aut — fora de #ms-music-view) */
   #panel-musica-autoral iframe{pointer-events:none!important}
 
-  /* 3. Panel-inner é o scroller único do mobile */
+  /* 3. Panel-inner é o scroller único do mobile.
+     NÃO usar -webkit-overflow-scrolling:touch: é legado (iOS moderno já tem
+     inércia nativa) e causa congelamento intermitente + extensão de scroll
+     desatualizada quando o conteúdo cresce (LER MAIS). */
   .panel-inner{
     height:100%!important;
     max-height:none!important;
     overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch;
     overscroll-behavior-y:contain;
     touch-action:pan-y;
     width:100%;
