@@ -10,37 +10,12 @@ function toggleLerMais(e) {
   if (!expanded || !label) return;
   lerMaisOpen = !lerMaisOpen;
   if (lerMaisOpen) {
-    // 'none' em vez de valor fixo: o elemento não tem transition de max-height
-    // no CSS, então nada é perdido — e elimina qualquer risco de recorte.
+    // maxHeight 'none': sem risco de recorte. Na arquitetura de body scroll do
+    // mobile, o navegador recalcula a altura do documento nativamente ao
+    // inserir conteúdo — nenhum hack de reflow é necessário (e o hack antigo
+    // recriaria um scroller interno, sabotando a arquitetura).
     expanded.style.maxHeight = 'none';
     expanded.style.opacity = '1';
-    // iOS Safari não atualiza scroll height durante transições CSS max-height.
-    // transitionend garante timing exato; toggle overflow força recálculo de layout
-    // sem salto visual (offsetHeight lê o layout, forçando reflow).
-    // Fallback por timeout: se transitionend não disparar (comum no iOS quando
-    // max-height:3000px nunca é "atingido"), o scroll ficaria travado em hidden.
-    var bioReflowDone = false;
-    function doBioReflow() {
-      if (bioReflowDone) return;
-      bioReflowDone = true;
-      expanded.removeEventListener('transitionend', onBioExpanded);
-      if (window.innerWidth > 768) return;
-      // O scroller no mobile é o .panel-inner (arquitetura iOS-safe);
-      // fallback para o próprio painel por segurança.
-      var bio = document.querySelector('#panel-bio .panel-inner') || document.getElementById('panel-bio');
-      if (!bio) return;
-      var saved = bio.scrollTop;
-      bio.style.setProperty('overflow-y', 'hidden', 'important');
-      void bio.offsetHeight; // força reflow — lê layout antes de pintar
-      bio.style.setProperty('overflow-y', 'scroll', 'important');
-      bio.scrollTop = saved;
-    }
-    function onBioExpanded(evt) {
-      if (evt.propertyName !== 'max-height') return;
-      doBioReflow();
-    }
-    expanded.addEventListener('transitionend', onBioExpanded);
-    setTimeout(doBioReflow, 800); // garante restauração mesmo sem transitionend
   } else {
     expanded.style.maxHeight = '0';
     expanded.style.opacity = '0';
@@ -113,6 +88,8 @@ function showPanel(id) {
   if (id === 'hero') bg.classList.remove('dimmed');
   else bg.classList.add('dimmed');
   current = id;
+  // Mobile (body scroll): nova "página" começa do topo
+  if (window.innerWidth <= 768) window.scrollTo(0, 0);
   // Reentrada em MÚSICA>TERCEIROS no desktop: re-afirma o estado da subview
   // (música/covers). Idempotente; elimina meio-estados deixados por navegação.
   if (id === 'musica-terceiros' && window.innerWidth > 768 && typeof showMusicView === 'function') {
@@ -564,25 +541,20 @@ buildDirectList('ml-srv', srvMusicData);
 // Mobile: mede o header e seta top exato em todos os panels para que
 // nenhum conteúdo apareça por trás do logo/idiomas/instagram.
 // O CSS tem 6.5rem como fallback; aqui sobrescrevemos com o valor real medido.
-(function applyMobilePanelTop() {
+// Mobile (body scroll): mede header e footer fixos e aplica como padding do
+// #stage, para o conteúdo nunca ficar por trás deles. Fallbacks no CSS.
+function applyMobileStagePadding() {
   if (window.innerWidth > 768) return;
+  var stage = document.getElementById('stage');
+  if (!stage) return;
   var hdr = document.querySelector('header');
-  if (!hdr) return;
-  var h = Math.ceil(hdr.getBoundingClientRect().height) + 2; // +2px margem
-  document.querySelectorAll('.panel').forEach(function(p) {
-    p.style.setProperty('top', h + 'px', 'important');
-  });
-})();
+  var ftr = document.querySelector('footer');
+  if (hdr) stage.style.setProperty('padding-top', (Math.ceil(hdr.getBoundingClientRect().height) + 10) + 'px', 'important');
+  if (ftr) stage.style.setProperty('padding-bottom', (Math.ceil(ftr.getBoundingClientRect().height) + 14) + 'px', 'important');
+}
+applyMobileStagePadding();
 
-// Re-aplica depois das fontes (podem alterar a altura do header)
+// Re-aplica depois das fontes (podem alterar a altura do header/footer)
 if (document.fonts && document.fonts.ready) {
-  document.fonts.ready.then(function() {
-    if (window.innerWidth > 768) return;
-    var hdr = document.querySelector('header');
-    if (!hdr) return;
-    var h = Math.ceil(hdr.getBoundingClientRect().height) + 2;
-    document.querySelectorAll('.panel').forEach(function(p) {
-      p.style.setProperty('top', h + 'px', 'important');
-    });
-  });
+  document.fonts.ready.then(applyMobileStagePadding);
 }
