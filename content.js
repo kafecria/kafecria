@@ -131,7 +131,6 @@ const musicCoverArts = [
   {name:'Yan Cloud, Fawaz, Avicena — ZAZA', src:'assets/music/yan-cloud-fawaz-avicena-zaza.jpg'},
   {name:'ÀTTØØXXÁ — Tá Pra Onda', src:'assets/music/attooxxa-ta-pra-onda.jpg'},
   {name:'Cinara — Mexe Mexe Mainha', src:'assets/music/cinara-mexe-mexe-mainha.jpg'},
-  {name:'Cinara — Paquerei', src:'assets/music/cinara-paquerei.jpg'},
   {name:'Enme — Coração Rebelde', src:'assets/music/enme-coracao-rebelde.jpg'},
   {name:'Nara Couto — Herança Sagrada', src:'assets/music/nara-couto-heranca-sagrada.jpg'},
   {name:'ZAI — Balancinho', src:'assets/music/zai-balancinho.jpg'},

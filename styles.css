@@ -469,62 +469,71 @@ footer{
   body{cursor:auto}
   *,*::before,*::after{cursor:auto!important}
 
-  /* 2. ARQUITETURA DE SCROLL MOBILE (iOS-safe):
-     o .panel é animado (opacity/transform na transição de entrada) e um
-     elemento animado/composto NUNCA deve ser o scroller — é a causa clássica
-     de touch-scroll congelado no iOS Safari. O .panel vira casca estática
-     (overflow:hidden) e o .panel-inner, que não tem transform nem transition,
-     passa a ser o único scroller. padding:0!important também neutraliza o
-     padding-top inline de centralização do #panel-bio (calc(50vh - 200px)),
-     que empurrava a caixa da TRAJETÓRIA para baixo no mobile. */
+  /* 2. ARQUITETURA MOBILE DEFINITIVA — BODY SCROLL NATIVO.
+     Nada de scroll containers internos: no mobile o app sai do position:fixed,
+     o painel ativo vira um bloco em fluxo normal do documento e QUEM ROLA É O
+     BODY, com o scroll nativo do navegador — o único mecanismo que não pode
+     congelar no iOS (é o mesmo scroll de qualquer página comum). Header e
+     footer ficam fixos; painéis inativos somem com display:none. */
+  html,body{overflow:visible!important;height:auto!important;min-height:100%}
+  #app{position:static!important;display:block!important;height:auto!important;inset:auto!important}
+  #stage{overflow:visible!important;height:auto!important;min-height:0!important;
+    /* fallbacks; o JS mede header/footer reais e sobrescreve */
+    padding-top:5.2rem;padding-bottom:7.5rem}
+
+  header{
+    position:fixed!important;top:0;left:0;right:0;z-index:400;
+    background:linear-gradient(to bottom, rgba(14,11,9,.94), rgba(14,11,9,.78));
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  }
+  footer{position:fixed!important;bottom:0;left:0;right:0;z-index:400}
+
   .panel{
-    top:6.5rem!important;
+    display:none!important;
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    transition:none!important;
+    opacity:1!important;
+    overflow:visible!important;
+    padding:0!important;
+    touch-action:auto;
+  }
+  .panel.active{
+    display:flex!important;
+    flex-direction:column;
     align-items:flex-start;
     justify-content:flex-start;
-    padding:0!important;
-    overflow:hidden!important;
-    touch-action:pan-y;
+    min-height:62vh;  /* fallback para navegadores sem dvh */
+    min-height:62dvh; /* painéis "em construção" (conteúdo absoluto) continuam visíveis */
   }
-  .panel.active{transform:none!important}
-  /* Troca de painéis instantânea no mobile: o scroller (.panel-inner) não pode
-     viver dentro de um elemento em animação de opacidade — no iOS isso congela
-     o touch-scroll de forma intermitente. No desktop a transição permanece. */
-  .panel{transition:none!important}
-  .panel.exit{transition:none!important}
+  .panel.exit{display:none!important}
 
-  /* Player fullscreen: alvo de toque maior para o [ voltar ] */
-  .fs-back{font-size:.78rem;padding:.55rem .8rem;margin:-.55rem -.8rem}
+  /* Player fullscreen: fixo no viewport (o stage agora é fluxo) e alvo de
+     toque maior para o [ voltar ] */
+  #fs-player{position:fixed!important}
+  .fs-back{font-size:.78rem;padding:.55rem .8rem;margin:-.55rem -.8rem;pointer-events:auto}
 
   /* 2b. Todos os iframes dentro do painel de música (Spotify + YouTube Sonho de Arrocha):
-     pointer-events:none impede que capturem toque, permitindo scroll do panel.
+     pointer-events:none impede que capturem toque, permitindo scroll da página.
      O seletor .sp-direct iframe cobria apenas Spotify — o YouTube em .sa-embed ficava de fora. */
   #ms-music-view iframe{pointer-events:none!important}
 
   /* 2c. Iframes no painel AUTORAL (Spotify em #ml-aut — fora de #ms-music-view) */
   #panel-musica-autoral iframe{pointer-events:none!important}
 
-  /* 3. Panel-inner é o scroller único do mobile.
-     NÃO usar -webkit-overflow-scrolling:touch: é legado (iOS moderno já tem
-     inércia nativa) e causa congelamento intermitente + extensão de scroll
-     desatualizada quando o conteúdo cresce (LER MAIS). */
+  /* 3. Panel-inner: bloco simples em fluxo — sem altura fixa, sem overflow */
   .panel-inner{
-    height:100%!important;
+    height:auto!important;
     max-height:none!important;
-    overflow-y:auto!important;
-    overscroll-behavior-y:contain;
-    touch-action:pan-y;
+    overflow:visible!important;
     width:100%;
     max-width:100%;
-    padding:1.5rem 1.2rem;
-    padding-bottom:5rem;
+    padding:1rem 1.2rem 2.5rem;
     box-sizing:border-box;
   }
 
-  /* 4. Bio panel: casca estática como os demais; quem rola é o inner.
-     overflow:hidden vence o inline overflow-y:auto do HTML. */
-  #panel-bio{
-    overflow:hidden!important;
-  }
+  /* 4. Bio panel: o overflow:visible do .panel já vence o inline overflow-y:auto */
 
   /* 5. FILMES > TERCEIROS: quebra cadeia position:absolute */
   #panel-filme-terceiros .panel-inner > div:last-child{
